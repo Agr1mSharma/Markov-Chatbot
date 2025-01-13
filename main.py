@@ -13,7 +13,6 @@ def process_chat_file(file_path, sender_name, receiver_name, output_df):
         raw_data = raw_data.replace(b"\r", b"\n")
         decoded_data = raw_data.decode('utf-8', errors='ignore')
         
-        # Clean the data
         cleaned_data = decoded_data.replace(r'\n', '\n')
         cleaned_data = re.sub(r'\[\d{1,2}/\d{1,2}/\d{2,4}, \d{1,2}:\d{2}:\d{2}[\u2000-\u206F]?(AM|PM)?\] ', '', cleaned_data)
         cleaned_data = re.sub(rf"{sender_name}:.*Messages and calls are end-to-end encrypted.*\r?\n", "", cleaned_data)
@@ -24,7 +23,6 @@ def process_chat_file(file_path, sender_name, receiver_name, output_df):
         receiver_message = ""
         current_sender = None
 
-        # Process the cleaned data line by line
         for line in cleaned_data.split('\n'):
             line = line.strip()
             if not line:
@@ -44,18 +42,15 @@ def process_chat_file(file_path, sender_name, receiver_name, output_df):
                 receiver_message += line[len(receiver_name) + 1:].strip() + " "
                 current_sender = receiver_name
 
-        # Handle any remaining messages
         if sender_message:
             previous_message.append(sender_message.strip())
         if receiver_message:
             your_response.append(receiver_message.strip())
 
-        # Balance the lists
         max_len = max(len(previous_message), len(your_response))
         previous_message.extend([''] * (max_len - len(previous_message)))
         your_response.extend([''] * (max_len - len(your_response)))
 
-        # Create and append DataFrame
         new_df = pd.DataFrame({
             'previous_message': previous_message,
             'your_response': your_response
@@ -138,10 +133,8 @@ def chat(input_text, df):
     transitions = build_weighted_markov(similar_responses)
     return generate_response(transitions)
 
-# Initialize DataFrame
 df_combined = pd.DataFrame(columns=['previous_message', 'your_response'])
 
-# Process chat files
 chat_files = [
     ("C:\\Projects\\Chatbot\\Chats\\Monish_chat.txt", "Monish M Purdue", "Agrim Sharma"),
     ("C:\\Projects\\Chatbot\\Chats\\Meowstogi_chat.txt", "Shivam Rastogi Purdue", "Agrim Sharma"),
@@ -155,12 +148,23 @@ chat_files = [
 for file_path, sender_name, receiver_name in chat_files:
     df_combined = process_chat_file(file_path, sender_name, receiver_name, df_combined)
 
-# Export the combined DataFrame
 df_combined.to_csv('combined_conversation_data.csv', index=False)
 
-# Example usage
+
+def chat_loop(df):
+    print("Chat started! Type 'end' to exit.")
+    print("-" * 50)
+    while True:
+        input_text = input("You: ").strip()
+        
+        if input_text.lower() == 'end':
+            print("Chat ended. Goodbye!")
+            break
+            
+        response = chat(input_text, df)
+        print(f"Bot: {response}")
+        print("-" * 50)
+
+
 if __name__ == "__main__":
-    input_text = "what"
-    response = chat(input_text, df_combined)
-    print(f"Input: {input_text}")
-    print(f"Generated Response: {response}")
+    chat_loop(df_combined)
